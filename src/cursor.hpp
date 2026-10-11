@@ -12,6 +12,7 @@
 #include "mode/ModeTilt.hpp"
 #include "mode/ModeStretch.hpp"
 #include "other/Shake.hpp"
+#include "other/Click.hpp"
 #include "highres.hpp"
 
 class CDynamicCursors {
@@ -79,6 +80,9 @@ class CDynamicCursors {
 
     // calculates the current angle of the cursor, and changes the cursor shape
     void calculate(EModeUpdate type);
+
+    // click animation
+    CClick click;
 };
 
 inline UP<CDynamicCursors> g_pDynamicCursors;

@@ -60,6 +60,14 @@ class CConfigHandler {
     SP<CBoolValue> c_hwDebug;
     SP<CBoolValue> c_ignoreWarps;
 
+    SP<CBoolValue>   c_clickEnabled;
+    SP<CFloatValue>  c_clickScale;
+    SP<CIntValue>    c_clickPressDuration;
+    SP<CIntValue>    c_clickReleaseDuration;
+    SP<CFloatValue>  c_clickCenterBias;
+    SP<CStringValue> c_clickReleaseCurve;
+    SP<CStringValue> c_clickPressCurve;
+
     UP<CShapeRuleHandler> m_shapeRules;
 
     /* config values which need to be recached */

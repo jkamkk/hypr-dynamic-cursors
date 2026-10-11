@@ -41,6 +41,10 @@ void tickRaw(SP<CEventLoopTimer> self, void* data) {
 CDynamicCursors::CDynamicCursors() {
     this->tick = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), tickRaw, nullptr));
     g_pEventLoopManager->addTimer(this->tick);
+
+    static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
+        click.onButton(e);
+    });
 }
 
 CDynamicCursors::~CDynamicCursors() {
@@ -268,7 +272,14 @@ SP<Aquamarine::IBuffer> CDynamicCursors::renderHardware(Pointer::CPointerManager
     else
         g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
-    CBox   xbox      = {cursorPadding, Vector2D{Pointer::mgr()->m_currentCursorImage.size / Pointer::mgr()->m_currentCursorImage.scale * state->monitor->m_scale * zoom}.round()};
+    Vector2D compensation = {0, 0};
+    if (zoom < 1.0) {
+        float    bias   = std::clamp((float)CONFIG(clickCenterBias), 0.0f, 1.0f);
+        Vector2D anchor = pointers->m_currentCursorImage.hotspot * (1.0 - bias) + (pointers->m_currentCursorImage.size / 2.0) * bias;
+        compensation    = anchor * (1.0 - zoom);
+    }
+
+    CBox   xbox      = {(cursorPadding + compensation).round(), Vector2D{Pointer::mgr()->m_currentCursorImage.size / Pointer::mgr()->m_currentCursorImage.scale * state->monitor->m_scale * zoom}.round()};
     Mat3x3 transform = toTransform(xbox, resultShown.rotation, Pointer::mgr()->m_currentCursorImage.hotspot * state->monitor->m_scale * zoom, resultShown.stretch.angle,
                                    resultShown.stretch.magnitude);
 
@@ -294,6 +305,12 @@ bool CDynamicCursors::setHardware(Pointer::CPointerManager* pointers, SP<Pointer
     // we need to transform the hotspot manually as we need to indent it by the padding
     int      diagonal = pointers->m_currentCursorImage.size.size();
     Vector2D padding  = {diagonal, diagonal};
+
+    if (resultShown.scale < 1.0) {
+        float    bias   = std::clamp((float)CONFIG(clickCenterBias), 0.0f, 1.0f);
+        Vector2D anchor = pointers->m_currentCursorImage.hotspot * (1.0 - bias) + (pointers->m_currentCursorImage.size / 2.0) * bias;
+        padding += (anchor * (1.0 - resultShown.scale)).round();
+    }
 
     const auto HOTSPOT = CBox{((pointers->m_currentCursorImage.hotspot * state->monitor->m_scale) + padding) * resultShown.scale, {0, 0}}
                              .transform(Math::wlTransformToHyprutils(Math::invertTransform(state->monitor->m_transform)),
@@ -432,6 +449,11 @@ void CDynamicCursors::calculate(EModeUpdate type) {
 
     auto result = resultMode;
     result.scale *= resultShake;
+
+    if (CONFIG(clickEnabled)) {
+        float clickScale = click.update();
+        result.scale *= clickScale;
+    }
 
     if (resultShown.hasDifference(&result, CONFIG(threshold) * (std::numbers::pi / 180.0), 0.01, 0.01)) {
         resultShown = result;

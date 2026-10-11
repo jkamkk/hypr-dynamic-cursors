@@ -61,6 +61,14 @@ CConfigHandler::CConfigHandler() {
 
     c_hwDebug         = conf(NS("hw_debug"),               false,                  "enable hardware debug mode");
     c_ignoreWarps     = conf(NS("ignore_warps"),           true,                   "ignore cursor warps");
+
+    c_clickEnabled         = conf(NS("click:enabled"),          false,                  "enables click shrink animation");
+    c_clickScale           = conf(NS("click:scale"),            0.88f,                  "cursor scale when mouse button is pressed");
+    c_clickPressDuration   = conf(NS("click:press_duration"),   90,                     "duration in ms for shrink animation");
+    c_clickReleaseDuration = conf(NS("click:release_duration"), 240,                    "duration in ms for restore bounce animation");
+    c_clickCenterBias      = conf(NS("click:center_bias"),      0.5f,                   "anchor point bias (0=tip, 1=center)");
+    c_clickReleaseCurve    = conf(NS("click:release_curve"),    "apple_ease",           "bezier curve preset or x1,y1,x2,y2 for release");
+    c_clickPressCurve      = conf(NS("click:press_curve"),      "default",              "bezier curve preset or x1,y1,x2,y2 for press");
     // clang-format on
 
     // add shape rule handlers
