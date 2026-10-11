@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <linux/input-event-codes.h>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/animation/AnimationManager.hpp>
 #include <hyprland/src/event/EventBus.hpp>
@@ -62,6 +63,9 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
         g_buttons = 0;
         return;
     }
+
+    if (e.button != BTN_LEFT && e.button != BTN_MIDDLE)
+        return;
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         g_buttons++;
