@@ -1,4 +1,12 @@
-# hypr-dynamic-cursors
+# hypr-dynamic-cursors (with Click Animation Fork)
+
+> **Fork Features Added**:
+> - **Click Shrink & Elastic Restore Animation**: Mouse cursor scales down on click and bounces back with fluid organic easing curves (inspired by iPadOS / Apple HIG physics).
+> - **Precise Button Filtering**: Specifically triggers only for **Left Click** (`BTN_LEFT`) and **Middle Click** (`BTN_MIDDLE`); right click and side buttons (forward/back) are untouched.
+> - **Anti-Drift Anchor Compensation (`center_bias`)**: Smoothly balances the transformation anchor between tip and center to completely eliminate visual top-left shifting during scaling.
+> - **Zero Stutter & Hardware Plane Guarantee**: Scales strictly within `scale <= 1.0`, operating entirely within the GPU DRM hardware cursor plane with zero input latency.
+> - **Configurable Easing Curves**: Includes presets such as `"smooth_s"`, `"fluid_jelly"`, `"apple_ease"`, `"natural_cubic"`, `"snappy"`, or custom cubic-bezier coordinates.
+
 This plugin makes your cursor more realistic by simulating how it would behave if it was an actual object being dragged across your screen. This means that your cursor can change based on how it is used, e.g. tilt in the direction you are moving or straight out rotate towards it.
 
 Why did I implement this again?
@@ -51,8 +59,15 @@ Installation is officially supported via `hyprpm`. Supported Hyprland versions a
 
 To install the plugin run the following. For more info and how to keep loading the plugin on startup, refer to [`hyprpm`'s section in the wiki](https://wiki.hypr.land/Plugins/Using-Plugins/#hyprpm).
 ```sh
-hyprpm add https://github.com/virtcode/hypr-dynamic-cursors
+hyprpm add https://github.com/jkamkk/hypr-dynamic-cursors -b feature/click-shrink
 hyprpm enable dynamic-cursors
+```
+
+Or build manually with the included script:
+```sh
+git clone https://github.com/jkamkk/hypr-dynamic-cursors.git -b feature/click-shrink
+cd hypr-dynamic-cursors
+./rebuild.sh
 ```
 
 ### distribution specific
