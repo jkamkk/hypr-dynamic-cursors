@@ -408,10 +408,17 @@ bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name
         return true;
     }
 
-    return shapeTransition.onShapeRequest(thisptr, name, [this](void* ptr, const std::string& s) {
+    bool immediate = shapeTransition.onShapeRequest(thisptr, name, [this](void* ptr, const std::string& s) {
         setShape(s);
         callOriginalSetCursorFromName(ptr, s);
     });
+
+    if (!immediate) {
+        // Immediately wake up the first animation frame without waiting for timer cycle
+        calculate(TICK);
+    }
+
+    return immediate;
 }
 
 void CDynamicCursors::onSetCursorSurface() {

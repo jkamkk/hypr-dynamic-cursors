@@ -250,13 +250,13 @@ plugin:dynamic-cursors {
         enabled = true
 
         # minimum scale reached during squash transition
-        scale = 0.85
+        scale = 0.76
 
         # duration in ms for shrinking the outgoing icon before swap
-        shrink_duration = 50
+        shrink_duration = 85
 
         # duration in ms for expanding the new icon after swap
-        restore_duration = 140
+        restore_duration = 160
 
         # bezier curve preset or coordinates for restore animation
         restore_curve = smooth_s

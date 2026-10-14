@@ -31,8 +31,8 @@ static std::pair<Vector2D, Vector2D> parseCurve(const std::string& str, const st
 }
 
 void CShapeTransition::registerBeziers() {
-    // Snappy anticipation shrink
-    Animation::mgr()->addBezierWithName("dynamic-cursors-shape-shrink", Vector2D(0.25, 0.1), Vector2D(0.25, 1.0));
+    // Smooth organic shrink (ease in and out without jarring shocks)
+    Animation::mgr()->addBezierWithName("dynamic-cursors-shape-shrink", Vector2D(0.38, 0.0), Vector2D(0.45, 1.0));
 
     // Configurable elastic restore
     auto restoreCurve = parseCurve(CONFIG(shapeTransitionRestoreCurve), {Vector2D(0.42, 0.0), Vector2D(0.58, 1.0)});
@@ -116,10 +116,10 @@ float CShapeTransition::update() {
     if (m_phase == EShapeTransitionPhase::SHRINKING) {
         int  shrinkDurationMs = CONFIG(shapeTransitionShrinkDuration);
         auto elapsed          = duration_cast<milliseconds>(now - m_phaseStartTime).count();
-        float targetMin       = std::clamp((float)CONFIG(shapeTransitionScale), 0.5f, 1.0f);
 
-        if (elapsed >= shrinkDurationMs || scale->value() <= targetMin + 0.015f) {
-            // Texture swap moment!
+        // Guarantee the full shrink phase is displayed visually before swapping texture
+        if (elapsed >= shrinkDurationMs) {
+            // Texture swap moment at the deepest compression!
             if (m_applyShapeCallback && m_pendingThisptr && !m_pendingShape.empty()) {
                 m_currentShape = m_pendingShape;
                 m_applyShapeCallback(m_pendingThisptr, m_pendingShape);
