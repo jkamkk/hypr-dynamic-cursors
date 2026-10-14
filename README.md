@@ -253,10 +253,10 @@ plugin:dynamic-cursors {
         scale = 0.76
 
         # duration in ms for shrinking the outgoing icon before swap
-        shrink_duration = 85
+        shrink_duration = 80
 
         # duration in ms for expanding the new icon after swap
-        restore_duration = 160
+        restore_duration = 150
 
         # bezier curve preset or coordinates for restore animation
         restore_curve = smooth_s
