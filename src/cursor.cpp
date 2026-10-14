@@ -33,7 +33,6 @@
 
 extern void callOriginalSetCursorFromName(void* thisptr, const std::string& name);
 
-
 void tickRaw(SP<CEventLoopTimer> self, void* data) {
     if (g_pConfigHandler->isEnabled())
         g_pDynamicCursors->onTick(Pointer::mgr().get());
@@ -48,20 +47,27 @@ CDynamicCursors::CDynamicCursors() {
 
     static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && (e.button == BTN_LEFT || e.button == BTN_MIDDLE)) {
-            // When click arrives while shape transition is in progress:
-            // High priority: interrupt and seamlessly take over!
-            if (shapeTransition.isTransitioning()) {
-                auto  phase              = shapeTransition.phase();
-                float currentVisualScale = shapeTransition.currentScale();
+            auto now                    = steady_clock::now();
+            auto elapsedSinceShapeStart = duration_cast<milliseconds>(now - shapeTransition.lastStartTime()).count();
 
-                shapeTransition.interrupt([this](void* ptr, const std::string& s) {
-                    setShape(s);
-                    callOriginalSetCursorFromName(ptr, s);
-                });
-                if (phase == EShapeTransitionPhase::SHRINKING) {
+            // If shape transition is active OR completed within 300ms (move-and-click gesture):
+            // The cursor already squashed down for this element!
+            // Seamlessly take over the click without a second downward squash!
+            if (shapeTransition.isTransitioning() || elapsedSinceShapeStart < 300) {
+                float currentVisualScale = shapeTransition.isTransitioning() ? shapeTransition.currentScale() : 1.0f;
+                auto  phase              = shapeTransition.phase();
+
+                if (shapeTransition.isTransitioning()) {
+                    shapeTransition.interrupt([this](void* ptr, const std::string& s) {
+                        setShape(s);
+                        callOriginalSetCursorFromName(ptr, s);
+                    });
+                }
+
+                if (phase == EShapeTransitionPhase::SHRINKING && currentVisualScale > 0.82f) {
                     click.takeoverAndPress(currentVisualScale);
                 } else {
-                    click.holdPressed();
+                    click.holdPressedAt(currentVisualScale);
                 }
                 return;
             }

@@ -89,7 +89,7 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
     }
 }
 
-void CClick::holdPressed() {
+void CClick::holdPressedAt(float currentScale) {
     if (!CONFIG(clickEnabled)) {
         *scale    = 1.0f;
         g_buttons = 0;
@@ -99,7 +99,8 @@ void CClick::holdPressed() {
     g_buttons++;
     if (g_buttons == 1) {
         float targetClickScale = std::clamp((float)CONFIG(clickScale), 0.5f, 1.0f);
-        scale->setValueAndWarp(targetClickScale);
+        float heldScale        = std::min(std::clamp(currentScale, 0.5f, 1.0f), targetClickScale);
+        scale->setValueAndWarp(heldScale);
     }
 }
 

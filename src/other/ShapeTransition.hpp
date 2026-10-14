@@ -35,6 +35,9 @@ class CShapeTransition {
     /* Current phase */
     EShapeTransitionPhase phase() const { return m_phase; }
 
+    /* Timestamp when the last shape transition started */
+    steady_clock::time_point lastStartTime() const { return m_phaseStartTime; }
+
     /* Whether a transition is currently in progress */
     bool isTransitioning() const { return m_phase != EShapeTransitionPhase::IDLE; }
 
