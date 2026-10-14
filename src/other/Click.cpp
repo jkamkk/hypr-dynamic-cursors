@@ -84,3 +84,25 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
         }
     }
 }
+
+void CClick::takeoverAndPress(float fromScale) {
+    if (!CONFIG(clickEnabled)) {
+        *scale    = 1.0f;
+        g_buttons = 0;
+        return;
+    }
+
+    g_buttons++;
+    if (g_buttons == 1) {
+        float targetClickScale = std::clamp((float)CONFIG(clickScale), 0.5f, 1.0f);
+        float startScale       = std::clamp(fromScale, 0.5f, 1.0f);
+
+        // Seamlessly inherit the current visual scale as the animation origin
+        scale->setValueAndWarp(startScale);
+
+        // Continue downward press smoothly into click depth
+        m_pConfig->internalBezier = "dynamic-cursors-click-press";
+        m_pConfig->internalSpeed  = std::max(0.1f, (float)CONFIG(clickPressDuration) / 100.0f);
+        *scale                    = targetClickScale;
+    }
+}

@@ -45,6 +45,17 @@ CDynamicCursors::CDynamicCursors() {
     g_pEventLoopManager->addTimer(this->tick);
 
     static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
+        if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && (e.button == BTN_LEFT || e.button == BTN_MIDDLE)) {
+            // When click arrives while shape transition is in progress, interrupt transition immediately and seamlessly take over press!
+            if (shapeTransition.isTransitioning()) {
+                float handedScale = shapeTransition.interrupt([this](void* ptr, const std::string& s) {
+                    setShape(s);
+                    callOriginalSetCursorFromName(ptr, s);
+                });
+                click.takeoverAndPress(handedScale);
+                return;
+            }
+        }
         click.onButton(e);
     });
 }
@@ -404,6 +415,7 @@ void CDynamicCursors::unsetShape() {
 
 bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
     if (click.isPressed()) {
+        shapeTransition.reset();
         setShape(name);
         return true;
     }
@@ -476,14 +488,13 @@ void CDynamicCursors::calculate(EModeUpdate type) {
     auto result = resultMode;
     result.scale *= resultShake;
 
-    if (CONFIG(clickEnabled)) {
-        float clickScale = click.update();
-        result.scale *= clickScale;
-    }
-
-    if (CONFIG(shapeTransitionEnabled)) {
-        float shapeScale = shapeTransition.update();
-        result.scale *= shapeScale;
+    if (CONFIG(clickEnabled) && click.isPressed()) {
+        result.scale *= click.update();
+    } else {
+        if (CONFIG(clickEnabled))
+            result.scale *= click.update();
+        if (CONFIG(shapeTransitionEnabled))
+            result.scale *= shapeTransition.update();
     }
 
     if (resultShown.hasDifference(&result, CONFIG(threshold) * (std::numbers::pi / 180.0), 0.01, 0.01)) {

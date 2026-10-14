@@ -57,7 +57,20 @@ void CShapeTransition::reset() {
     m_pendingShape.clear();
     m_pendingThisptr = nullptr;
     if (scale)
-        *scale = 1.0f;
+        scale->setValueAndWarp(1.0f);
+}
+
+float CShapeTransition::interrupt(const std::function<void(void*, const std::string&)>& applyShape) {
+    float visualScale = isTransitioning() ? std::clamp(scale->value(), 0.5f, 1.0f) : 1.0f;
+
+    // If old shape is still shrinking, immediately swap to new shape
+    if (m_phase == EShapeTransitionPhase::SHRINKING && m_pendingThisptr && !m_pendingShape.empty()) {
+        m_currentShape = m_pendingShape;
+        applyShape(m_pendingThisptr, m_pendingShape);
+    }
+
+    reset();
+    return visualScale;
 }
 
 bool CShapeTransition::onShapeRequest(void* thisptr, const std::string& newShape, const std::function<void(void*, const std::string&)>& applyShape) {
@@ -105,7 +118,7 @@ bool CShapeTransition::onShapeRequest(void* thisptr, const std::string& newShape
 }
 
 float CShapeTransition::update() {
-    if (!CONFIG(shapeTransitionEnabled)) {
+    if (!CONFIG(shapeTransitionEnabled) || m_phase == EShapeTransitionPhase::IDLE) {
         if (m_phase != EShapeTransitionPhase::IDLE)
             reset();
         return 1.0f;
@@ -138,9 +151,12 @@ float CShapeTransition::update() {
 
         if (elapsed >= restoreDurationMs || (!scale->isBeingAnimated() && std::abs(scale->value() - 1.0f) < 0.005f)) {
             m_phase = EShapeTransitionPhase::IDLE;
-            *scale  = 1.0f;
+            scale->setValueAndWarp(1.0f);
         }
     }
+
+    if (m_phase == EShapeTransitionPhase::IDLE)
+        return 1.0f;
 
     return std::clamp(scale->value(), 0.5f, 1.0f);
 }

@@ -32,6 +32,15 @@ class CShapeTransition {
     /* Forcibly reset transition (e.g. on client-side surface cursors or disabled) */
     void reset();
 
+    /* Whether a transition is currently in progress */
+    bool isTransitioning() const { return m_phase != EShapeTransitionPhase::IDLE; }
+
+    /* Current visual scale */
+    float currentScale() const { return scale ? scale->value() : 1.0f; }
+
+    /* Interrupt transition immediately on user click: swaps texture if pending, halts transition, and returns visual scale */
+    float interrupt(const std::function<void(void*, const std::string&)>& applyShape);
+
     /* Get currently active shape */
     const std::string& currentShape() const { return m_currentShape; }
 
