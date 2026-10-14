@@ -4,11 +4,14 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <chrono>
 #include <linux/input-event-codes.h>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/animation/AnimationManager.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprutils/animation/AnimationConfig.hpp>
+
+using namespace std::chrono;
 
 static std::pair<Vector2D, Vector2D> parseCurve(const std::string& str, const std::pair<Vector2D, Vector2D>& def) {
     if (str == "default" || str == "apple_ease" || str.empty())
@@ -78,11 +81,20 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
         if (g_buttons > 0)
             g_buttons--;
         if (g_buttons == 0) {
+            m_lastReleaseTime         = steady_clock::now();
             m_pConfig->internalBezier = "dynamic-cursors-click-release";
             m_pConfig->internalSpeed  = std::max(0.1f, (float)CONFIG(clickReleaseDuration) / 100.0f);
             *scale                    = 1.0f;
         }
     }
+}
+
+bool CClick::isReleasing() const {
+    if (g_buttons > 0)
+        return false;
+    auto elapsed = duration_cast<milliseconds>(steady_clock::now() - m_lastReleaseTime).count();
+    int  duration = CONFIG(clickReleaseDuration);
+    return elapsed < (duration + 50);
 }
 
 void CClick::takeoverAndPress(float fromScale) {
