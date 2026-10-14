@@ -48,13 +48,21 @@ CDynamicCursors::CDynamicCursors() {
 
     static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && (e.button == BTN_LEFT || e.button == BTN_MIDDLE)) {
-            // When click arrives while shape transition is in progress, interrupt transition immediately and seamlessly take over press!
+            // When click arrives while shape transition is in progress:
+            // High priority: interrupt and seamlessly take over!
             if (shapeTransition.isTransitioning()) {
-                float handedScale = shapeTransition.interrupt([this](void* ptr, const std::string& s) {
+                auto  phase              = shapeTransition.phase();
+                float currentVisualScale = shapeTransition.currentScale();
+
+                shapeTransition.interrupt([this](void* ptr, const std::string& s) {
                     setShape(s);
                     callOriginalSetCursorFromName(ptr, s);
                 });
-                click.takeoverAndPress(handedScale);
+                if (phase == EShapeTransitionPhase::SHRINKING) {
+                    click.takeoverAndPress(currentVisualScale);
+                } else {
+                    click.holdPressed();
+                }
                 return;
             }
         }
@@ -416,10 +424,20 @@ void CDynamicCursors::unsetShape() {
 }
 
 bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
-    // If mouse button is held down OR in the middle of click release bounce:
-    // DO NOT trigger shape shrink! Directly apply texture and let click animation govern scale!
-    if (click.isPressed() || click.isReleasing()) {
+    // If mouse button is held down: directly apply shape without scaling interference
+    if (click.isPressed()) {
         shapeTransition.reset();
+        shapeTransition.setCurrentShape(name);
+        setShape(name);
+        return true;
+    }
+
+    // If cursor is actively popping back up from a click release:
+    // Apply shape immediately so the new shape inherits the ongoing upward pop to 1.0!
+    // This provides a visible expansion animation without a second downward shrink!
+    if (click.isReleasing()) {
+        shapeTransition.reset();
+        shapeTransition.setCurrentShape(name);
         setShape(name);
         return true;
     }
@@ -492,13 +510,10 @@ void CDynamicCursors::calculate(EModeUpdate type) {
     auto result = resultMode;
     result.scale *= resultShake;
 
-    if (CONFIG(clickEnabled) && click.isPressed()) {
+    if (CONFIG(clickEnabled) && (click.isPressed() || click.isReleasing())) {
         result.scale *= click.update();
-    } else {
-        if (CONFIG(clickEnabled))
-            result.scale *= click.update();
-        if (CONFIG(shapeTransitionEnabled))
-            result.scale *= shapeTransition.update();
+    } else if (CONFIG(shapeTransitionEnabled) && shapeTransition.isTransitioning()) {
+        result.scale *= shapeTransition.update();
     }
 
 

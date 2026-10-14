@@ -89,12 +89,24 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
     }
 }
 
+void CClick::holdPressed() {
+    if (!CONFIG(clickEnabled)) {
+        *scale    = 1.0f;
+        g_buttons = 0;
+        return;
+    }
+
+    g_buttons++;
+    if (g_buttons == 1) {
+        float targetClickScale = std::clamp((float)CONFIG(clickScale), 0.5f, 1.0f);
+        scale->setValueAndWarp(targetClickScale);
+    }
+}
+
 bool CClick::isReleasing() const {
     if (g_buttons > 0)
         return false;
-    auto elapsed = duration_cast<milliseconds>(steady_clock::now() - m_lastReleaseTime).count();
-    int  duration = CONFIG(clickReleaseDuration);
-    return elapsed < (duration + 50);
+    return scale && scale->isBeingAnimated() && scale->value() < 0.999f;
 }
 
 void CClick::takeoverAndPress(float fromScale) {
@@ -112,9 +124,10 @@ void CClick::takeoverAndPress(float fromScale) {
         // Seamlessly inherit the current visual scale as the animation origin
         scale->setValueAndWarp(startScale);
 
-        // Continue downward press smoothly into click depth
+        // Continue downward press smoothly into click depth (or hold if already deeper)
+        float target              = std::min(targetClickScale, startScale);
         m_pConfig->internalBezier = "dynamic-cursors-click-press";
         m_pConfig->internalSpeed  = std::max(0.1f, (float)CONFIG(clickPressDuration) / 100.0f);
-        *scale                    = targetClickScale;
+        *scale                    = target;
     }
 }

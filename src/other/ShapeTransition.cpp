@@ -103,15 +103,14 @@ bool CShapeTransition::onShapeRequest(void* thisptr, const std::string& newShape
     }
 
     if (m_phase == EShapeTransitionPhase::EXPANDING) {
-        m_pendingShape   = newShape;
-        m_pendingThisptr = thisptr;
-        m_phase          = EShapeTransitionPhase::SHRINKING;
-        m_phaseStartTime = steady_clock::now();
-
-        m_pConfig->internalBezier = "dynamic-cursors-shape-shrink";
-        m_pConfig->internalSpeed  = std::max(0.1f, (float)CONFIG(shapeTransitionShrinkDuration) / 100.0f);
-        *scale                    = targetMin;
-        return false;
+        // While already expanding from a recent squash:
+        // Do not reverse and squash down a second time!
+        // Immediately swap to the new shape at current scale and continue expanding!
+        m_currentShape = newShape;
+        applyShape(thisptr, newShape);
+        m_pendingShape.clear();
+        m_pendingThisptr = nullptr;
+        return true;
     }
 
     return true;

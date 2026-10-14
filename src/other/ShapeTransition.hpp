@@ -32,6 +32,9 @@ class CShapeTransition {
     /* Forcibly reset transition (e.g. on client-side surface cursors or disabled) */
     void reset();
 
+    /* Current phase */
+    EShapeTransitionPhase phase() const { return m_phase; }
+
     /* Whether a transition is currently in progress */
     bool isTransitioning() const { return m_phase != EShapeTransitionPhase::IDLE; }
 
