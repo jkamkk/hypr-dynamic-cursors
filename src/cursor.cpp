@@ -30,24 +30,9 @@
 #include "mode/Mode.hpp"
 #include "render/CursorPassElement.hpp"
 #include <chrono>
-#include <cstdarg>
 
 extern void callOriginalSetCursorFromName(void* thisptr, const std::string& name);
 
-static void dbgLog(const char* fmt, ...) {
-    static auto t0 = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - t0).count();
-    FILE* f = fopen("/tmp/cursor_debug.log", "a");
-    if (!f) return;
-    fprintf(f, "[%6lld ms] ", ms);
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(f, fmt, args);
-    va_end(args);
-    fprintf(f, "\n");
-    fclose(f);
-}
 
 void tickRaw(SP<CEventLoopTimer> self, void* data) {
     if (g_pConfigHandler->isEnabled())
@@ -62,7 +47,6 @@ CDynamicCursors::CDynamicCursors() {
     g_pEventLoopManager->addTimer(this->tick);
 
     static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
-        dbgLog("EVENT button: btn=%u, state=%d, isTransitioning=%d", e.button, (int)e.state, (int)shapeTransition.isTransitioning());
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && (e.button == BTN_LEFT || e.button == BTN_MIDDLE)) {
             // When click arrives while shape transition is in progress, interrupt transition immediately and seamlessly take over press!
             if (shapeTransition.isTransitioning()) {
@@ -70,7 +54,6 @@ CDynamicCursors::CDynamicCursors() {
                     setShape(s);
                     callOriginalSetCursorFromName(ptr, s);
                 });
-                dbgLog("--> INTERRUPTED transition at scale=%.3f", handedScale);
                 click.takeoverAndPress(handedScale);
                 return;
             }
@@ -433,18 +416,15 @@ void CDynamicCursors::unsetShape() {
 }
 
 bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
-    dbgLog("onSetCursorFromName: name='%s', isPressed=%d, isTransitioning=%d", name.c_str(), (int)click.isPressed(), (int)shapeTransition.isTransitioning());
     // If mouse button is held down OR in the middle of click release bounce:
     // DO NOT trigger shape shrink! Directly apply texture and let click animation govern scale!
     if (click.isPressed() || click.isReleasing()) {
-        dbgLog("--> DIRECT swap without shrink (click isPressed=%d, isReleasing=%d)", (int)click.isPressed(), (int)click.isReleasing());
         shapeTransition.reset();
         setShape(name);
         return true;
     }
 
     bool immediate = shapeTransition.onShapeRequest(thisptr, name, [this](void* ptr, const std::string& s) {
-        dbgLog("--> SWAP texture callback: shape='%s'", s.c_str());
         setShape(s);
         callOriginalSetCursorFromName(ptr, s);
     });
@@ -458,7 +438,6 @@ bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name
 }
 
 void CDynamicCursors::onSetCursorSurface() {
-    dbgLog("onSetCursorSurface (clientside)");
     unsetShape();
     shapeTransition.reset();
 }
@@ -522,11 +501,6 @@ void CDynamicCursors::calculate(EModeUpdate type) {
             result.scale *= shapeTransition.update();
     }
 
-    static float lastLoggedScale = -1.0f;
-    if (std::abs(result.scale - lastLoggedScale) > 0.03f) {
-        lastLoggedScale = result.scale;
-        dbgLog("SCALE: result.scale=%.3f (click=%.3f, shape=%.3f)", result.scale, click.update(), shapeTransition.update());
-    }
 
     if (resultShown.hasDifference(&result, CONFIG(threshold) * (std::numbers::pi / 180.0), 0.01, 0.01)) {
         resultShown = result;
