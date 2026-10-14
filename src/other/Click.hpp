@@ -20,6 +20,9 @@ class CClick {
     /* handles button press/release events */
     void onButton(const IPointer::SButtonEvent& e);
 
+    /* whether any mouse button is currently held down */
+    bool isPressed() const { return g_buttons > 0; }
+
   private:
     int                          g_buttons = 0;
     PHLANIMVAR<float>            scale;

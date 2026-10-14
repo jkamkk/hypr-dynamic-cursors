@@ -71,17 +71,26 @@ void                  hkOnCursorMoved(void* thisptr) {
 
 typedef void (*origSetCursorFromName)(void*, const std::string& name);
 inline CFunctionHook* g_pSetCursorFromNameHook = nullptr;
+
+void callOriginalSetCursorFromName(void* thisptr, const std::string& name) {
+    if (g_pSetCursorFromNameHook && g_pSetCursorFromNameHook->m_original)
+        (*(origSetCursorFromName)g_pSetCursorFromNameHook->m_original)(thisptr, name);
+}
+
 void                  hkSetCursorFromName(void* thisptr, const std::string& name) {
-    if (g_pConfigHandler->isEnabled())
-        g_pDynamicCursors->setShape(name);
-    (*(origSetCursorFromName)g_pSetCursorFromNameHook->m_original)(thisptr, name);
+    if (g_pConfigHandler->isEnabled()) {
+        if (g_pDynamicCursors->onSetCursorFromName(thisptr, name))
+            callOriginalSetCursorFromName(thisptr, name);
+    } else {
+        callOriginalSetCursorFromName(thisptr, name);
+    }
 }
 
 typedef void (*origSetCursorSurface)(void*, SP<Desktop::View::CWLSurface>, const Vector2D&);
 inline CFunctionHook* g_pSetCursorSurfaceHook = nullptr;
 void                  hkSetCursorSurface(void* thisptr, SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
     if (g_pConfigHandler->isEnabled())
-        g_pDynamicCursors->unsetShape();
+        g_pDynamicCursors->onSetCursorSurface();
     (*(origSetCursorSurface)g_pSetCursorSurfaceHook->m_original)(thisptr, surf, hotspot);
 }
 

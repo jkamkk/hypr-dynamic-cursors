@@ -30,6 +30,8 @@
 #include "mode/Mode.hpp"
 #include "render/CursorPassElement.hpp"
 
+extern void callOriginalSetCursorFromName(void* thisptr, const std::string& name);
+
 void tickRaw(SP<CEventLoopTimer> self, void* data) {
     if (g_pConfigHandler->isEnabled())
         g_pDynamicCursors->onTick(Pointer::mgr().get());
@@ -400,6 +402,23 @@ void CDynamicCursors::unsetShape() {
     setShape("clientside");
 }
 
+bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
+    if (click.isPressed()) {
+        setShape(name);
+        return true;
+    }
+
+    return shapeTransition.onShapeRequest(thisptr, name, [this](void* ptr, const std::string& s) {
+        setShape(s);
+        callOriginalSetCursorFromName(ptr, s);
+    });
+}
+
+void CDynamicCursors::onSetCursorSurface() {
+    unsetShape();
+    shapeTransition.reset();
+}
+
 void CDynamicCursors::updateTheme() {
     highres.update();
 }
@@ -453,6 +472,11 @@ void CDynamicCursors::calculate(EModeUpdate type) {
     if (CONFIG(clickEnabled)) {
         float clickScale = click.update();
         result.scale *= clickScale;
+    }
+
+    if (CONFIG(shapeTransitionEnabled)) {
+        float shapeScale = shapeTransition.update();
+        result.scale *= shapeScale;
     }
 
     if (resultShown.hasDifference(&result, CONFIG(threshold) * (std::numbers::pi / 180.0), 0.01, 0.01)) {

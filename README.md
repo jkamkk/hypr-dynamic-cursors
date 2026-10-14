@@ -1,6 +1,7 @@
 # hypr-dynamic-cursors (with Click Animation Fork)
 
 > **Fork Features Added**:
+> - **Shape Transition Animation (Squash & Pop)**: Seamlessly transitions between cursor shapes (e.g. arrow -> pointer -> text) by organically squashing the outgoing icon, swapping textures at peak compression, and expanding smoothly into the new shape.
 > - **Click Shrink & Elastic Restore Animation**: Mouse cursor scales down on click and bounces back with fluid organic easing curves (inspired by iPadOS / Apple HIG physics).
 > - **Precise Button Filtering**: Specifically triggers only for **Left Click** (`BTN_LEFT`) and **Middle Click** (`BTN_MIDDLE`); right click and side buttons (forward/back) are untouched.
 > - **Anti-Drift Anchor Compensation (`center_bias`)**: Smoothly balances the transformation anchor between tip and center to completely eliminate visual top-left shifting during scaling.
@@ -241,6 +242,45 @@ plugin:dynamic-cursors {
         # time window (ms) over which the speed is calculated
         # higher values will make slow motions smoother but more delayed
         window = 100
+    }
+
+    # configure shape transition animation (squash & pop between cursor shapes)
+    shape_transition {
+        # enables shape transition animation
+        enabled = true
+
+        # minimum scale reached during squash transition
+        scale = 0.85
+
+        # duration in ms for shrinking the outgoing icon before swap
+        shrink_duration = 50
+
+        # duration in ms for expanding the new icon after swap
+        restore_duration = 140
+
+        # bezier curve preset or coordinates for restore animation
+        restore_curve = smooth_s
+    }
+
+    # configure click animation
+    click {
+        # enables click animation
+        enabled = true
+
+        # cursor scale when button is pressed
+        scale = 0.80
+
+        # duration in ms for pressing/shrinking animation
+        press_duration = 90
+
+        # duration in ms for release/restoring animation
+        release_duration = 260
+
+        # anchor point bias (0.0 = tip anchor, 1.0 = center anchor)
+        center_bias = 0.5
+
+        # bezier curve for release bounce (smooth_s, fluid_jelly, apple_ease, natural_cubic, snappy)
+        release_curve = smooth_s
     }
 
     # configure shake to find

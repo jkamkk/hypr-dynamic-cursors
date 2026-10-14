@@ -69,6 +69,12 @@ CConfigHandler::CConfigHandler() {
     c_clickCenterBias      = conf(NS("click:center_bias"),      0.5f,                   "anchor point bias (0=tip, 1=center)");
     c_clickReleaseCurve    = conf(NS("click:release_curve"),    "apple_ease",           "bezier curve preset or x1,y1,x2,y2 for release");
     c_clickPressCurve      = conf(NS("click:press_curve"),      "default",              "bezier curve preset or x1,y1,x2,y2 for press");
+
+    c_shapeTransitionEnabled         = conf(NS("shape_transition:enabled"),          true,                   "enables cursor shape change morph animation");
+    c_shapeTransitionScale           = conf(NS("shape_transition:scale"),            0.85f,                  "minimum scale during shape transition squash");
+    c_shapeTransitionShrinkDuration   = conf(NS("shape_transition:shrink_duration"),   50,                     "duration in ms for shrinking before swap");
+    c_shapeTransitionRestoreDuration  = conf(NS("shape_transition:restore_duration"),  140,                    "duration in ms for expanding after swap");
+    c_shapeTransitionRestoreCurve    = conf(NS("shape_transition:restore_curve"),    "smooth_s",             "bezier curve preset or x1,y1,x2,y2 for restore");
     // clang-format on
 
     // add shape rule handlers

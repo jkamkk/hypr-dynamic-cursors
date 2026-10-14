@@ -68,6 +68,12 @@ class CConfigHandler {
     SP<CStringValue> c_clickReleaseCurve;
     SP<CStringValue> c_clickPressCurve;
 
+    SP<CBoolValue>   c_shapeTransitionEnabled;
+    SP<CFloatValue>  c_shapeTransitionScale;
+    SP<CIntValue>    c_shapeTransitionShrinkDuration;
+    SP<CIntValue>    c_shapeTransitionRestoreDuration;
+    SP<CStringValue> c_shapeTransitionRestoreCurve;
+
     UP<CShapeRuleHandler> m_shapeRules;
 
     /* config values which need to be recached */

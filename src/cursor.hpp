@@ -13,6 +13,7 @@
 #include "mode/ModeStretch.hpp"
 #include "other/Shake.hpp"
 #include "other/Click.hpp"
+#include "other/ShapeTransition.hpp"
 #include "highres.hpp"
 
 class CDynamicCursors {
@@ -41,6 +42,11 @@ class CDynamicCursors {
     void unsetShape();
     /* hook on updateTheme */
     void updateTheme();
+
+    /* hook on setCursorFromName, returns true if original call should proceed immediately */
+    bool onSetCursorFromName(void* thisptr, const std::string& name);
+    /* hook on setCursorSurface, cancels any pending shape transition */
+    void onSetCursorSurface();
 
     /* hook on move, indicate that next onCursorMoved is actual move */
     void setMove();
@@ -83,6 +89,9 @@ class CDynamicCursors {
 
     // click animation
     CClick click;
+
+    // shape transition animation
+    CShapeTransition shapeTransition;
 };
 
 inline UP<CDynamicCursors> g_pDynamicCursors;
