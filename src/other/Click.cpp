@@ -54,6 +54,12 @@ CClick::CClick() {
     Animation::mgr()->createAnimation(1.0f, scale, m_pConfig, AVARDAMAGE_NONE);
 }
 
+void CClick::reset() {
+    g_buttons = 0;
+    if (scale)
+        scale->setValueAndWarp(1.0f);
+}
+
 float CClick::update() {
     if (!CONFIG(clickEnabled))
         return 1.0f;
@@ -86,6 +92,21 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
             m_pConfig->internalSpeed  = std::max(0.1f, (float)CONFIG(clickReleaseDuration) / 100.0f);
             *scale                    = 1.0f;
         }
+    }
+}
+
+void CClick::holdAtCurrentScale(float currentScale) {
+    if (!CONFIG(clickEnabled)) {
+        *scale    = 1.0f;
+        g_buttons = 0;
+        return;
+    }
+
+    g_buttons++;
+    if (g_buttons == 1) {
+        float heldScale = std::clamp(currentScale, 0.5f, 1.0f);
+        scale->setValueAndWarp(heldScale);
+        *scale = heldScale;
     }
 }
 

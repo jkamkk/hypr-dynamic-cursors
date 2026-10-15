@@ -30,9 +30,9 @@
 #include "mode/Mode.hpp"
 #include "render/CursorPassElement.hpp"
 #include <chrono>
-#include "globals.hpp"
 
 extern void callOriginalSetCursorFromName(void* thisptr, const std::string& name);
+
 
 void tickRaw(SP<CEventLoopTimer> self, void* data) {
     if (g_pConfigHandler->isEnabled())
@@ -47,11 +47,11 @@ CDynamicCursors::CDynamicCursors() {
     g_pEventLoopManager->addTimer(this->tick);
 
     static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
-        dbgLog("EVENT button: btn=%u state=%d isTrans=%d phase=%d shapeScale=%.3f clickScale=%.3f", e.button, (int)e.state, (int)shapeTransition.isTransitioning(), (int)shapeTransition.phase(), shapeTransition.currentScale(), click.currentScale());
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && (e.button == BTN_LEFT || e.button == BTN_MIDDLE)) {
             // When click arrives while shape transition is in progress:
             // High priority: interrupt shape transition and seamlessly take over press!
             if (shapeTransition.isTransitioning()) {
+                auto phase = shapeTransition.phase();
                 float currentVisualScale = shapeTransition.currentScale();
 
                 shapeTransition.interrupt([this](void* ptr, const std::string& s) {
@@ -59,12 +59,14 @@ CDynamicCursors::CDynamicCursors() {
                     callOriginalSetCursorFromName(ptr, s);
                 });
 
-                dbgLog("--> INTERRUPTED transition at scale=%.3f with takeoverAndPress", currentVisualScale);
-                click.takeoverAndPress(currentVisualScale);
+                if (phase == EShapeTransitionPhase::SHRINKING) {
+                    click.takeoverAndPress(currentVisualScale);
+                } else {
+                    click.holdAtCurrentScale(currentVisualScale);
+                }
                 return;
             }
         }
-        dbgLog("--> NORMAL click.onButton");
         click.onButton(e);
     });
 }
@@ -423,15 +425,19 @@ void CDynamicCursors::unsetShape() {
 }
 
 bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
-    dbgLog("onSetCursorFromName: name='%s' isPressed=%d isReleasing=%d isTrans=%d", name.c_str(), (int)click.isPressed(), (int)click.isReleasing(), (int)shapeTransition.isTransitioning());
-    // If mouse button is held down OR in click release:
-    // Directly apply shape so the new shape inherits the ongoing click animation without a conflicting downward squash!
-    if (click.isPressed() || click.isReleasing()) {
-        dbgLog("--> CLICK ACTIVE (pressed=%d, releasing=%d): direct shape swap to '%s'", (int)click.isPressed(), (int)click.isReleasing(), name.c_str());
+    // If mouse button is held down:
+    // User is dragging or clicking, directly apply shape without triggering transition
+    if (click.isPressed()) {
         shapeTransition.reset();
         shapeTransition.setCurrentShape(name);
         setShape(name);
         return true;
+    }
+
+    // If a shape transition starts while click is releasing, reset click animation
+    // so shape transition takes over without interference or missing animation!
+    if (click.isReleasing()) {
+        click.reset();
     }
 
     bool immediate = shapeTransition.onShapeRequest(thisptr, name, [this](void* ptr, const std::string& s) {
@@ -502,17 +508,14 @@ void CDynamicCursors::calculate(EModeUpdate type) {
     auto result = resultMode;
     result.scale *= resultShake;
 
-    if (CONFIG(clickEnabled) && (click.isPressed() || click.isReleasing())) {
+    if (CONFIG(clickEnabled) && click.isPressed()) {
         result.scale *= click.update();
     } else if (CONFIG(shapeTransitionEnabled) && shapeTransition.isTransitioning()) {
         result.scale *= shapeTransition.update();
+    } else if (CONFIG(clickEnabled) && click.isReleasing()) {
+        result.scale *= click.update();
     }
 
-    static float lastLoggedScale = -1.0f;
-    if (std::abs(result.scale - lastLoggedScale) > 0.005f) {
-        lastLoggedScale = result.scale;
-        dbgLog("SCALE: res=%.3f (click=%.3f, shape=%.3f, clickActive=%d, shapeActive=%d)", result.scale, click.currentScale(), shapeTransition.currentScale(), (int)(click.isPressed() || click.isReleasing()), (int)shapeTransition.isTransitioning());
-    }
 
     if (resultShown.hasDifference(&result, CONFIG(threshold) * (std::numbers::pi / 180.0), 0.01, 0.01)) {
         resultShown = result;
