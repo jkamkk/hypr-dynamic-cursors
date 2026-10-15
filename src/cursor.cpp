@@ -52,6 +52,7 @@ CDynamicCursors::CDynamicCursors() {
             // When click arrives while shape transition is in progress:
             // High priority: interrupt shape transition and seamlessly take over press!
             if (shapeTransition.isTransitioning()) {
+                auto  phase              = shapeTransition.phase();
                 float currentVisualScale = shapeTransition.currentScale();
 
                 shapeTransition.interrupt([this](void* ptr, const std::string& s) {
@@ -59,8 +60,13 @@ CDynamicCursors::CDynamicCursors() {
                     callOriginalSetCursorFromName(ptr, s);
                 });
 
-                dbgLog("--> INTERRUPTED transition at scale=%.3f with takeoverAndPress", currentVisualScale);
-                click.takeoverAndPress(currentVisualScale);
+                if (phase == EShapeTransitionPhase::SHRINKING) {
+                    dbgLog("--> INTERRUPTED shrinking transition at scale=%.3f with takeoverAndPress", currentVisualScale);
+                    click.takeoverAndPress(currentVisualScale);
+                } else {
+                    dbgLog("--> INTERRUPTED expanding transition at scale=%.3f with holdAtCurrentScale", currentVisualScale);
+                    click.holdAtCurrentScale(currentVisualScale);
+                }
                 return;
             }
         }
