@@ -89,32 +89,10 @@ void CClick::onButton(const IPointer::SButtonEvent& e) {
     }
 }
 
-void CClick::holdAtCurrentScale(float currentScale) {
-    if (!CONFIG(clickEnabled)) {
-        *scale    = 1.0f;
-        g_buttons = 0;
-        return;
-    }
-
-    g_buttons++;
-    if (g_buttons == 1) {
-        float heldScale = std::clamp(currentScale, 0.5f, 1.0f);
-        scale->setValueAndWarp(heldScale);
-        *scale = heldScale;
-    }
-}
-
 bool CClick::isReleasing() const {
     if (g_buttons > 0)
         return false;
     return scale && scale->isBeingAnimated() && scale->value() < 0.999f;
-}
-
-bool CClick::isRecentRelease(int windowMs) const {
-    if (g_buttons > 0)
-        return false;
-    auto elapsed = duration_cast<milliseconds>(steady_clock::now() - m_lastReleaseTime).count();
-    return elapsed < windowMs;
 }
 
 void CClick::takeoverAndPress(float fromScale) {

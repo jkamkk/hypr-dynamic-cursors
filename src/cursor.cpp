@@ -52,7 +52,6 @@ CDynamicCursors::CDynamicCursors() {
             // When click arrives while shape transition is in progress:
             // High priority: interrupt shape transition and seamlessly take over press!
             if (shapeTransition.isTransitioning()) {
-                auto  phase              = shapeTransition.phase();
                 float currentVisualScale = shapeTransition.currentScale();
 
                 shapeTransition.interrupt([this](void* ptr, const std::string& s) {
@@ -60,13 +59,8 @@ CDynamicCursors::CDynamicCursors() {
                     callOriginalSetCursorFromName(ptr, s);
                 });
 
-                if (phase == EShapeTransitionPhase::SHRINKING) {
-                    dbgLog("--> INTERRUPTED shrinking transition at scale=%.3f with takeoverAndPress", currentVisualScale);
-                    click.takeoverAndPress(currentVisualScale);
-                } else {
-                    dbgLog("--> INTERRUPTED expanding transition at scale=%.3f with holdAtCurrentScale", currentVisualScale);
-                    click.holdAtCurrentScale(currentVisualScale);
-                }
+                dbgLog("--> INTERRUPTED transition at scale=%.3f with takeoverAndPress", currentVisualScale);
+                click.takeoverAndPress(currentVisualScale);
                 return;
             }
         }
@@ -429,20 +423,11 @@ void CDynamicCursors::unsetShape() {
 }
 
 bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
-    dbgLog("onSetCursorFromName: name='%s' isPressed=%d isReleasing=%d recentRelease=%d isTrans=%d", name.c_str(), (int)click.isPressed(), (int)click.isReleasing(), (int)click.isRecentRelease(), (int)shapeTransition.isTransitioning());
-    // If mouse button is held down: directly apply shape without scaling interference
-    if (click.isPressed()) {
-        shapeTransition.reset();
-        shapeTransition.setCurrentShape(name);
-        setShape(name);
-        return true;
-    }
-
-    // If cursor was released recently from a click (during release or within 200ms after):
-    // Directly apply shape so the new shape inherits the ongoing upward expansion or remains at 1.0!
-    // NEVER trigger a second downward squash right after a click!
-    if (click.isRecentRelease()) {
-        dbgLog("--> RECENT RELEASE: direct shape swap to '%s' without downward squash", name.c_str());
+    dbgLog("onSetCursorFromName: name='%s' isPressed=%d isReleasing=%d isTrans=%d", name.c_str(), (int)click.isPressed(), (int)click.isReleasing(), (int)shapeTransition.isTransitioning());
+    // If mouse button is held down OR in click release:
+    // Directly apply shape so the new shape inherits the ongoing click animation without a conflicting downward squash!
+    if (click.isPressed() || click.isReleasing()) {
+        dbgLog("--> CLICK ACTIVE (pressed=%d, releasing=%d): direct shape swap to '%s'", (int)click.isPressed(), (int)click.isReleasing(), name.c_str());
         shapeTransition.reset();
         shapeTransition.setCurrentShape(name);
         setShape(name);

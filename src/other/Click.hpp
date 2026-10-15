@@ -22,7 +22,6 @@ class CClick {
     /* handles button press/release events */
     void onButton(const IPointer::SButtonEvent& e);
     void takeoverAndPress(float fromScale);
-    void holdAtCurrentScale(float currentScale);
 
     /* whether any mouse button is currently held down */
     bool isPressed() const { return g_buttons > 0; }
@@ -32,9 +31,6 @@ class CClick {
 
     /* whether cursor is actively in click release bounce animation */
     bool isReleasing() const;
-
-    /* whether cursor was released within windowMs (to prevent post-click double shrink on exit) */
-    bool isRecentRelease(int windowMs = 450) const;
 
   private:
     int                          g_buttons = 0;
