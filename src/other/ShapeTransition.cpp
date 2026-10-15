@@ -76,6 +76,8 @@ float CShapeTransition::interrupt(const std::function<void(void*, const std::str
 bool CShapeTransition::onShapeRequest(void* thisptr, const std::string& newShape, const std::function<void(void*, const std::string&)>& applyShape) {
     m_applyShapeCallback = applyShape;
 
+    dbgLog("shape onShapeRequest: new='%s' cur='%s' phase=%d", newShape.c_str(), m_currentShape.c_str(), (int)m_phase);
+
     if (!CONFIG(shapeTransitionEnabled) || newShape == m_currentShape || newShape.empty() || m_currentShape.empty()) {
         m_currentShape = newShape;
         reset();
@@ -133,6 +135,7 @@ float CShapeTransition::update() {
         if (elapsed >= shrinkDurationMs) {
             // Texture swap moment at the deepest compression!
             if (m_applyShapeCallback && m_pendingThisptr && !m_pendingShape.empty()) {
+                dbgLog("--> SWAP texture callback: shape='%s'", m_pendingShape.c_str());
                 m_currentShape = m_pendingShape;
                 m_applyShapeCallback(m_pendingThisptr, m_pendingShape);
             }

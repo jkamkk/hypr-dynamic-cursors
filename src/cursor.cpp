@@ -30,6 +30,7 @@
 #include "mode/Mode.hpp"
 #include "render/CursorPassElement.hpp"
 #include <chrono>
+#include "globals.hpp"
 
 extern void callOriginalSetCursorFromName(void* thisptr, const std::string& name);
 
@@ -46,6 +47,9 @@ CDynamicCursors::CDynamicCursors() {
     g_pEventLoopManager->addTimer(this->tick);
 
     static const auto BUTTON_LISTENER = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
+        auto now0                    = steady_clock::now();
+        auto elapsed0                = duration_cast<milliseconds>(now0 - shapeTransition.lastStartTime()).count();
+        dbgLog("EVENT button: btn=%u state=%d isTrans=%d phase=%d shapeScale=%.3f clickScale=%.3f elapsed=%lld", e.button, (int)e.state, (int)shapeTransition.isTransitioning(), (int)shapeTransition.phase(), shapeTransition.currentScale(), click.currentScale(), (long long)elapsed0);
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && (e.button == BTN_LEFT || e.button == BTN_MIDDLE)) {
             auto now                    = steady_clock::now();
             auto elapsedSinceShapeStart = duration_cast<milliseconds>(now - shapeTransition.lastStartTime()).count();
@@ -65,13 +69,16 @@ CDynamicCursors::CDynamicCursors() {
                 }
 
                 if (phase == EShapeTransitionPhase::SHRINKING && currentVisualScale > 0.82f) {
+                    dbgLog("--> INTERCEPTED with takeoverAndPress at scale=%.3f", currentVisualScale);
                     click.takeoverAndPress(currentVisualScale);
                 } else {
+                    dbgLog("--> INTERCEPTED with holdPressedAt at scale=%.3f", currentVisualScale);
                     click.holdPressedAt(currentVisualScale);
                 }
                 return;
             }
         }
+        dbgLog("--> NORMAL click.onButton");
         click.onButton(e);
     });
 }
@@ -430,6 +437,7 @@ void CDynamicCursors::unsetShape() {
 }
 
 bool CDynamicCursors::onSetCursorFromName(void* thisptr, const std::string& name) {
+    dbgLog("onSetCursorFromName: name='%s' isPressed=%d isReleasing=%d isTrans=%d", name.c_str(), (int)click.isPressed(), (int)click.isReleasing(), (int)shapeTransition.isTransitioning());
     // If mouse button is held down: directly apply shape without scaling interference
     if (click.isPressed()) {
         shapeTransition.reset();
@@ -522,6 +530,11 @@ void CDynamicCursors::calculate(EModeUpdate type) {
         result.scale *= shapeTransition.update();
     }
 
+    static float lastLoggedScale = -1.0f;
+    if (std::abs(result.scale - lastLoggedScale) > 0.005f) {
+        lastLoggedScale = result.scale;
+        dbgLog("SCALE: res=%.3f (click=%.3f, shape=%.3f, clickActive=%d, shapeActive=%d)", result.scale, click.currentScale(), shapeTransition.currentScale(), (int)(click.isPressed() || click.isReleasing()), (int)shapeTransition.isTransitioning());
+    }
 
     if (resultShown.hasDifference(&result, CONFIG(threshold) * (std::numbers::pi / 180.0), 0.01, 0.01)) {
         resultShown = result;
